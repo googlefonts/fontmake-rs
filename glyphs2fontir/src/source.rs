@@ -270,7 +270,10 @@ mod tests {
     };
 
     use fontir::{
-        coords::{CoordConverter, DesignCoord, NormalizedCoord, NormalizedLocation, UserCoord},
+        coords::{
+            CoordConverter, DesignCoord, NormalizedCoord, NormalizedLocation, UserCoord,
+            UserLocation,
+        },
         error::WorkError,
         ir,
         orchestration::{Context, WorkIdentifier},
@@ -395,7 +398,7 @@ mod tests {
 
     #[test]
     fn loads_axis_mappings_from_glyphs2() {
-        let (source, context) = context_for(glyphs2_dir().join("WghtVar_AxisMappings.glyphs"));
+        let (source, context) = context_for(glyphs2_dir().join("OpszWghtVar_AxisMappings.glyphs"));
         let task_context = context.copy_for_work(WorkIdentifier::StaticMetadata, None);
         source
             .create_static_metadata_work(&context.input)
@@ -406,26 +409,43 @@ mod tests {
 
         // Did you load the mappings? DID YOU?!
         assert_eq!(
-            vec![ir::Axis {
-                name: "Weight".into(),
-                tag: "wght".into(),
-                min: UserCoord::new(100.0),
-                default: UserCoord::new(500.0),
-                max: UserCoord::new(700.0),
-                hidden: false,
-                converter: CoordConverter::new(
-                    vec![
-                        (UserCoord::new(100.0), DesignCoord::new(40.0)),
-                        (UserCoord::new(200.0), DesignCoord::new(46.0)),
-                        (UserCoord::new(300.0), DesignCoord::new(51.0)),
-                        (UserCoord::new(400.0), DesignCoord::new(57.0)),
-                        (UserCoord::new(500.0), DesignCoord::new(62.0)), // default
-                        (UserCoord::new(600.0), DesignCoord::new(68.0)),
-                        (UserCoord::new(700.0), DesignCoord::new(73.0)),
-                    ],
-                    4
-                ),
-            }],
+            vec![
+                ir::Axis {
+                    name: "Weight".into(),
+                    tag: "wght".into(),
+                    min: UserCoord::new(100.0),
+                    default: UserCoord::new(500.0),
+                    max: UserCoord::new(700.0),
+                    hidden: false,
+                    converter: CoordConverter::new(
+                        vec![
+                            (UserCoord::new(100.0), DesignCoord::new(40.0)),
+                            (UserCoord::new(200.0), DesignCoord::new(46.0)),
+                            (UserCoord::new(300.0), DesignCoord::new(51.0)),
+                            (UserCoord::new(400.0), DesignCoord::new(57.0)),
+                            (UserCoord::new(500.0), DesignCoord::new(62.0)), // default
+                            (UserCoord::new(600.0), DesignCoord::new(68.0)),
+                            (UserCoord::new(700.0), DesignCoord::new(73.0)),
+                        ],
+                        4
+                    ),
+                },
+                ir::Axis {
+                    name: "Optical Size".into(),
+                    tag: "opsz".into(),
+                    min: UserCoord::new(12.0),
+                    default: UserCoord::new(12.0),
+                    max: UserCoord::new(72.0),
+                    hidden: false,
+                    converter: CoordConverter::new(
+                        vec![
+                            (UserCoord::new(12.0), DesignCoord::new(12.0)), // default
+                            (UserCoord::new(72.0), DesignCoord::new(72.0)),
+                        ],
+                        0
+                    ),
+                },
+            ],
             static_metadata.axes
         );
     }
@@ -462,31 +482,76 @@ mod tests {
     }
 
     #[test]
-    fn normalizes_glyph_locations() {
+    fn glyph_user_locations() {
         let glyph_name = "space".to_string();
         let (source, context) =
-            build_static_metadata(glyphs2_dir().join("WghtVar_AxisMappings.glyphs"));
+            build_static_metadata(glyphs2_dir().join("OpszWghtVar_AxisMappings.glyphs"));
         build_glyphs(&source, &context, vec![&glyph_name]).unwrap(); // we dont' care about geometry
 
-        assert_eq!(
-            HashSet::from([
-                &NormalizedLocation::on_axis("Weight", NormalizedCoord::new(-1.0)),
-                &NormalizedLocation::on_axis("Weight", NormalizedCoord::new(0.0)),
-                &NormalizedLocation::on_axis("Weight", NormalizedCoord::new(1.0)),
-            ]),
-            context
-                .get_glyph_ir(&glyph_name)
-                .sources
-                .keys()
-                .collect::<HashSet<_>>()
-        )
+        let static_metadata = context.get_static_metadata();
+        let axes = static_metadata.axes.iter().map(|a| (&a.name, a)).collect();
+
+        let mut expected_locations = HashSet::new();
+        for (opsz, wght) in &[
+            (12.0, 100.0),
+            (12.0, 500.0),
+            (12.0, 700.0),
+            (72.0, 100.0),
+            (72.0, 500.0),
+            (72.0, 700.0),
+        ] {
+            let mut loc = UserLocation::new();
+            loc.set_pos("Optical Size", UserCoord::new(*opsz));
+            loc.set_pos("Weight", UserCoord::new(*wght));
+            let loc: _ = loc;
+            expected_locations.insert(loc);
+        }
+        let actual_locations = context
+            .get_glyph_ir(&glyph_name)
+            .sources
+            .keys()
+            .map(|c| c.to_user(&axes))
+            .collect::<HashSet<_>>();
+
+        assert_eq!(expected_locations, actual_locations);
+    }
+
+    #[test]
+    fn glyph_normalized_locations() {
+        let glyph_name = "space".to_string();
+        let (source, context) =
+            build_static_metadata(glyphs2_dir().join("OpszWghtVar_AxisMappings.glyphs"));
+        build_glyphs(&source, &context, vec![&glyph_name]).unwrap(); // we dont' care about geometry
+
+        let mut expected_locations = HashSet::new();
+        for (opsz, wght) in &[
+            (0.0, -1.0),
+            (0.0, 0.0),
+            (0.0, 1.0),
+            (1.0, -1.0),
+            (1.0, 0.0),
+            (1.0, 1.0),
+        ] {
+            let mut loc = NormalizedLocation::new();
+            loc.set_pos("Optical Size", NormalizedCoord::new(*opsz));
+            loc.set_pos("Weight", NormalizedCoord::new(*wght));
+            let loc: _ = loc;
+            expected_locations.insert(loc);
+        }
+        let actual_locations = context
+            .get_glyph_ir(&glyph_name)
+            .sources
+            .keys()
+            .cloned()
+            .collect::<HashSet<_>>();
+
+        assert_eq!(expected_locations, actual_locations);
     }
 
     #[test]
     fn glyph_must_define_min() {
         let glyph_name = "min-undefined".to_string();
-        let (source, context) =
-            build_static_metadata(glyphs2_dir().join("WghtVar_AxisMappings.glyphs"));
+        let (source, context) = build_static_metadata(glyphs2_dir().join("MinUndef.glyphs"));
         let result = build_glyphs(&source, &context, vec![&glyph_name]);
         assert!(result.is_err());
         let Err(WorkError::GlyphUndefAtNormalizedPosition { glyph_name, axis, pos }) =  result else {
@@ -495,5 +560,28 @@ mod tests {
         assert_eq!("min-undefined", glyph_name);
         assert_eq!("wght", axis);
         assert_eq!(NormalizedCoord::new(-1.0), pos);
+    }
+
+    #[test]
+    fn read_axis_location() {
+        let (_, context) = build_static_metadata(glyphs3_dir().join("WghtVar_AxisLocation.glyphs"));
+        let wght = &context.get_static_metadata().axes;
+        assert_eq!(1, wght.len());
+        let wght = &wght[0];
+
+        for (design, user) in &[
+            (0.0, 400.0),
+            (4.0, 450.0),
+            (8.0, 500.0),
+            (9.0, 600.0),
+            (10.0, 700.0),
+        ] {
+            assert_eq!(
+                DesignCoord::new(*design),
+                UserCoord::new(*user).to_design(&wght.converter),
+                "{:#?}",
+                wght.converter
+            );
+        }
     }
 }

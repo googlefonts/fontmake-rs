@@ -18,14 +18,14 @@ fn design_location(axes: &[ir::Axis], master: &FontMaster) -> DesignLocation {
 fn find_by_design_coord(
     mappings: &[(UserCoord, DesignCoord)],
     value: DesignCoord,
-    axis: &str,
+    axis_name: &str,
     field: &str,
 ) -> Result<usize, Error> {
     mappings
         .iter()
         .position(|(_, dc)| *dc == value)
         .ok_or_else(|| Error::MissingMappingForDesignCoord {
-            axis: axis.to_string(),
+            axis_name: axis_name.to_string(),
             field: field.to_string(),
             value,
         })
@@ -53,18 +53,18 @@ fn to_ir_axis(
     let min = DesignCoord::new(min);
     let max = DesignCoord::new(max);
 
-    let converter = if font.axis_mappings.contains_key(&axis.tag) {
+    let converter = if font.axis_mappings.contains_key(&axis.name) {
         let mappings: Vec<_> = font
             .axis_mappings
-            .get(&axis.tag)
+            .get(&axis.name)
             .unwrap()
             .iter()
             .map(|(u, d)| (UserCoord::new(*u), DesignCoord::new(*d)))
             .collect();
-        let default_idx = find_by_design_coord(&mappings, default, axis.tag.as_str(), "default")?;
+        let default_idx = find_by_design_coord(&mappings, default, axis.name.as_str(), "default")?;
         // Make sure we have min and max mappings
-        find_by_design_coord(&mappings, min, axis.tag.as_str(), "min")?;
-        find_by_design_coord(&mappings, max, axis.tag.as_str(), "max")?;
+        find_by_design_coord(&mappings, min, axis.name.as_str(), "min")?;
+        find_by_design_coord(&mappings, max, axis.name.as_str(), "max")?;
         CoordConverter::new(mappings, default_idx)
     } else {
         // There is no mapping; design == user

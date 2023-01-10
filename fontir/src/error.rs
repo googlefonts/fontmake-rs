@@ -43,9 +43,9 @@ pub enum Error {
     InvalidGlobalMetadata,
     #[error("No default master in {0:?}")]
     NoDefaultMaster(PathBuf),
-    #[error("Missing mapping on {axis} for {field} at {value:?}")]
+    #[error("Missing mapping on {axis_name} for {field} at {value:?}")]
     MissingMappingForDesignCoord {
-        axis: String,
+        axis_name: String,
         field: String,
         value: DesignCoord,
     },

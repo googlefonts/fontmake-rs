@@ -326,7 +326,10 @@ impl Workload {
             while let Some((completed_id, result)) = opt_complete.take() {
                 if !match result {
                     Ok(..) => success.insert(completed_id.clone()),
-                    Err(..) => error.insert(completed_id.clone()),
+                    Err(e) => {
+                        error!("{:?} failed {}", completed_id, e);
+                        error.insert(completed_id.clone())
+                    }
                 } {
                     panic!("Repeat signals for completion of {:#?}", completed_id);
                 }
@@ -343,7 +346,7 @@ impl Workload {
                 }
             }
         }
-        if success.len() != job_count {
+        if error.is_empty() && success.len() != job_count {
             panic!("No errors but not everything succeeded?!");
         }
         Ok(JobResults { success, error })

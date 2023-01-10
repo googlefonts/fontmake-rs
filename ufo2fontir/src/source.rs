@@ -518,10 +518,12 @@ mod tests {
         axis: &str,
         pos: f32,
     ) {
+        let mut loc = DesignLocation::new();
+        loc.set_pos(axis, DesignCoord::new(pos));
         add_to
             .entry(testdata_dir().join(glif_file))
             .or_default()
-            .push(DesignLocation::on_axis(axis, DesignCoord::new(pos)));
+            .push(loc);
     }
 
     #[test]
@@ -586,8 +588,10 @@ mod tests {
     pub fn find_default_master() {
         let (source, _) = test_source();
         let ds = source.load_designspace().unwrap();
+        let mut loc = DesignLocation::new();
+        loc.set_pos("Weight", DesignCoord::new(400.0));
         assert_eq!(
-            DesignLocation::on_axis("Weight", DesignCoord::new(400.0)),
+            loc,
             to_design_location(&default_master(&ds).unwrap().1.location)
         );
     }
