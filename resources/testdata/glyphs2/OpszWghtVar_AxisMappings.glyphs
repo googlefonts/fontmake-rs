@@ -1,0 +1,237 @@
+{
+.appVersion = "3148";
+DisplayStrings = (
+"-",
+"!"
+);
+customParameters = (
+{
+name = Axes;
+value = (
+{
+Name = Weight;
+Tag = wght;
+},
+{
+Name = "Optical Size";
+Tag = opsz;
+}
+);
+},
+{
+name = "Variable Font Origin";
+value = "medium-12pt";
+},
+{
+name = "Axis Mappings";
+value = {
+opsz = {
+12 = 12;
+72 = 72;
+};
+wght = {
+100 = 40;
+200 = 46;
+300 = 51;
+400 = 57;
+500 = 62;
+600 = 68;
+700 = 73;
+};
+};
+}
+);
+date = "2022-12-01 04:52:20 +0000";
+familyName = WghtVar;
+fontMaster = (
+{
+ascender = 800;
+capHeight = 0;
+descender = -200;
+id = thin-12pt;
+weightValue = 40;
+widthValue = 12;
+xHeight = 0;
+},
+{
+ascender = 800;
+capHeight = 0;
+descender = -200;
+id = thin-72pt;
+weightValue = 40;
+widthValue = 72;
+xHeight = 0;
+},
+{
+ascender = 800;
+capHeight = 0;
+descender = -200;
+id = medium-12pt;
+weightValue = 62;
+widthValue = 12;
+xHeight = 0;
+},
+{
+ascender = 800;
+capHeight = 0;
+descender = -200;
+id = medium-72pt;
+weightValue = 62;
+widthValue = 72;
+xHeight = 0;
+},
+{
+ascender = 800;
+capHeight = 700;
+descender = -200;
+id = "bold-12pt";
+weight = Bold;
+weightValue = 73;
+widthValue = 12;
+xHeight = 500;
+},
+{
+ascender = 800;
+capHeight = 700;
+descender = -200;
+id = "bold-72pt";
+weight = Bold;
+weightValue = 73;
+widthValue = 72;
+xHeight = 500;
+}
+);
+glyphs = (
+{
+glyphname = space;
+lastChange = "2022-12-01 04:58:12 +0000";
+layers = (
+{
+layerId = thin-12pt;
+width = 200;
+},
+{
+layerId = medium-12pt;
+width = 250;
+},
+{
+layerId = "bold-12pt";
+width = 550;
+},
+{
+layerId = thin-72pt;
+width = 250;
+},
+{
+layerId = "medium-72pt";
+width = 600;
+},
+{
+layerId = "bold-72pt";
+width = 600;
+}
+);
+unicode = 0020;
+},
+{
+glyphname = hyphen;
+lastChange = "2022-12-01 04:57:39 +0000";
+layers = (
+{
+layerId = thin-12pt;
+paths = (
+{
+closed = 1;
+nodes = (
+"131 250 LINE",
+"470 250 LINE",
+"470 330 LINE",
+"131 330 LINE"
+);
+}
+);
+width = 400;
+},
+{
+layerId = medium-12pt;
+paths = (
+{
+closed = 1;
+nodes = (
+"131 250 LINE",
+"470 250 LINE",
+"470 330 LINE",
+"131 330 LINE"
+);
+}
+);
+width = 500;
+},
+{
+layerId = "bold-12pt";
+paths = (
+{
+closed = 1;
+nodes = (
+"92 224 LINE",
+"508 224 LINE",
+"508 356 LINE",
+"92 356 LINE"
+);
+}
+);
+width = 600;
+},
+{
+layerId = thin-72pt;
+paths = (
+{
+closed = 1;
+nodes = (
+"131 250 LINE",
+"470 250 LINE",
+"470 330 LINE",
+"131 330 LINE"
+);
+}
+);
+width = 400;
+},
+{
+layerId = medium-72pt;
+paths = (
+{
+closed = 1;
+nodes = (
+"131 250 LINE",
+"470 250 LINE",
+"470 330 LINE",
+"131 330 LINE"
+);
+}
+);
+width = 500;
+},
+{
+layerId = "bold-72pt";
+paths = (
+{
+closed = 1;
+nodes = (
+"92 224 LINE",
+"508 224 LINE",
+"508 356 LINE",
+"92 356 LINE"
+);
+}
+);
+width = 600;
+}
+);
+unicode = 002D;
+}
+);
+unitsPerEm = 1000;
+versionMajor = 1;
+versionMinor = 0;
+}

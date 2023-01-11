@@ -768,27 +768,118 @@ fn default_master_idx(raw_font: &RawFont) -> usize {
         .unwrap_or(0)
 }
 
-fn extract_axis_mappings(from: &RawFont) -> BTreeMap<String, RawUserToDesignMapping> {
+fn axis_index(from: &RawFont, pred: impl Fn(&Axis) -> bool) -> Option<usize> {
+    from.axes
+        .as_ref()
+        .map(|axes| {
+            axes.iter()
+                .enumerate()
+                .find_map(|(i, a)| if pred(a) { Some(i) } else { None })
+        })
+        .unwrap_or_default()
+}
+
+fn user_to_design_from_axis_mapping(
+    from: &RawFont,
+) -> Option<BTreeMap<String, RawUserToDesignMapping>> {
+    // Fetch mapping from Axis Mappings, if any
+    let Some((_, axis_map)) = custom_param(&from.other_stuff, "Axis Mappings") else {
+        return None;
+    };
+    let Plist::Dictionary(axis_map) = axis_map.get("value").unwrap() else {
+        panic!("Incomprehensible axis map {:?}", axis_map);
+    };
     let mut axis_mappings: BTreeMap<String, RawUserToDesignMapping> = BTreeMap::new();
-    if let Some((_, axis_map)) = custom_param(&from.other_stuff, "Axis Mappings") {
-        let Plist::Dictionary(axis_map) = axis_map.get("value").unwrap() else {
-            panic!("Incomprehensible axis map");
+    for (axis_tag, mappings) in axis_map.iter() {
+        let Plist::Dictionary(mappings) = mappings else {
+            panic!("Incomprehensible mappings {:?}", mappings);
         };
-        for (axis_tag, mappings) in axis_map.iter() {
-            let Plist::Dictionary(mappings) = mappings else {
-                panic!("Incomprehensible mappings");
-            };
-            for (user, design) in mappings.iter() {
-                let user: f32 = user.parse().unwrap();
-                let design = design.as_f64().unwrap() as f32;
-                axis_mappings
-                    .entry(axis_tag.clone())
-                    .or_default()
-                    .push((user.into(), design.into()));
-            }
+        let Some(axis_index) = axis_index(from, |a| &a.tag == axis_tag) else {
+            panic!("No such axes: {:?}", axis_tag);
+        };
+        // We could not have found an axis index if there are no axes
+        let axis_name = &from.axes.as_ref().unwrap().get(axis_index).unwrap().name;
+        for (user, design) in mappings.iter() {
+            let user: f32 = user.parse().unwrap();
+            let design = design.as_f64().unwrap() as f32;
+            axis_mappings
+                .entry(axis_name.clone())
+                .or_default()
+                .push((user.into(), design.into()));
         }
     }
-    axis_mappings
+    Some(axis_mappings)
+}
+
+fn user_to_design_from_axis_location(
+    from: &RawFont,
+) -> Option<BTreeMap<String, RawUserToDesignMapping>> {
+    // glyphsLib only trusts Axis Location when all masters have it, match that
+    // https://github.com/googlefonts/fontmake-rs/pull/83#discussion_r1065814670
+    let master_locations: Vec<&Plist> = from
+        .font_master
+        .iter()
+        .filter_map(|m| custom_param(&m.other_stuff, "Axis Location").map(|(_, al)| al))
+        .collect();
+    if master_locations.len() != from.font_master.len() {
+        if !master_locations.is_empty() {
+            warn!(
+                "{}/{} masters have Axis Location; ignoring",
+                master_locations.len(),
+                from.font_master.len()
+            );
+        }
+        return None;
+    }
+
+    let mut axis_mappings: BTreeMap<String, RawUserToDesignMapping> = BTreeMap::new();
+    for (master, axis_locations) in from.font_master.iter().zip(&master_locations) {
+        let Plist::Dictionary(axis_locations) = axis_locations else {
+            panic!("Axis Location must be a dict {:?}", axis_locations);
+        };
+        let Some(Plist::Array(axis_locations)) = axis_locations.get("value") else {
+            panic!("Value must be a dict {:?}", axis_locations);
+        };
+        for axis_location in axis_locations {
+            let Some(Plist::String(axis_name)) = axis_location.get("Axis") else {
+                panic!("Axis name must be a string {:?}", axis_location);
+            };
+            let Some(user) = axis_location.get("Location") else {
+                panic!("Incomprehensible axis location {:?}", axis_location);
+            };
+            let Some(user) = user.as_f64() else {
+                panic!("Incomprehensible axis location {:?}", axis_location);
+            };
+            let Some(axis_index) = axis_index(from, |a| &a.name == axis_name) else {
+                panic!("Axis has no index {:?}", axis_location);
+            };
+            let Some(axis_values) = master.axes_values.as_ref() else {
+                panic!("Master has no axis values {:?}", master);
+            };
+            let user = user as f32;
+            let design = axis_values[axis_index].into_inner() as f32;
+
+            axis_mappings
+                .entry(axis_name.clone())
+                .or_default()
+                .push((user.into(), design.into()));
+        }
+    }
+    Some(axis_mappings)
+}
+
+fn extract_axis_mappings(from: &RawFont) -> BTreeMap<String, RawUserToDesignMapping> {
+    let from_axis_mapping = user_to_design_from_axis_mapping(from);
+    let from_axis_location = user_to_design_from_axis_location(from);
+    match (from_axis_mapping, from_axis_location) {
+        (Some(from_mapping), Some(..)) => {
+            warn!("Axis Mapping *and* Axis Location are defined; using Axis Mapping");
+            from_mapping
+        }
+        (Some(from_mapping), None) => from_mapping,
+        (None, Some(from_location)) => from_location,
+        (None, None) => BTreeMap::new(),
+    }
 }
 
 impl TryFrom<RawShape> for Shape {
@@ -1101,20 +1192,20 @@ mod tests {
 
     #[test]
     fn loads_global_axis_mappings_from_glyphs2() {
-        let font = Font::load(&glyphs2_dir().join("WghtVar_AxisMappings.glyphs")).unwrap();
+        let font = Font::load(&glyphs2_dir().join("OpszWghtVar_AxisMappings.glyphs")).unwrap();
 
         // Did you load the mappings? DID YOU?!
         assert_eq!(
             BTreeMap::from([
                 (
-                    "opsz".to_string(),
+                    "Optical Size".to_string(),
                     vec![
                         (OrderedFloat(12.0), OrderedFloat(12.0)),
                         (OrderedFloat(72.0), OrderedFloat(72.0))
                     ]
                 ),
                 (
-                    "wght".to_string(),
+                    "Weight".to_string(),
                     vec![
                         (OrderedFloat(100.0), OrderedFloat(40.0)),
                         (OrderedFloat(200.0), OrderedFloat(46.0)),
@@ -1126,6 +1217,24 @@ mod tests {
                     ]
                 ),
             ]),
+            font.axis_mappings
+        );
+    }
+
+    #[test]
+    fn loads_global_axis_locations_from_glyphs3() {
+        let font = Font::load(&glyphs3_dir().join("WghtVar_AxisLocation.glyphs")).unwrap();
+
+        // Did you load the mappings? DID YOU?!
+        assert_eq!(
+            BTreeMap::from([(
+                "Weight".to_string(),
+                vec![
+                    (OrderedFloat(400.0), OrderedFloat(0.0)),
+                    (OrderedFloat(500.0), OrderedFloat(8.0)),
+                    (OrderedFloat(700.0), OrderedFloat(10.0)),
+                ]
+            ),]),
             font.axis_mappings
         );
     }

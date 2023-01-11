@@ -10,6 +10,7 @@ use std::{
     sync::Arc,
 };
 
+use log::trace;
 use parking_lot::RwLock;
 use serde::Serialize;
 
@@ -152,6 +153,7 @@ impl Context {
         self.maybe_persist(&self.paths.static_metadata_ir_file(), &static_metadata);
         let mut wl = self.static_metadata.item.write();
         *wl = Some(Arc::from(static_metadata));
+        trace!("set_static_metadata");
     }
 
     pub fn get_glyph_ir(&self, glyph_name: &str) -> Arc<ir::Glyph> {
@@ -165,5 +167,6 @@ impl Context {
         self.maybe_persist(&self.paths.glyph_ir_file(&ir.name), &ir);
         let mut wl = self.glyph_ir.item.write();
         wl.insert(glyph_name.to_string(), Arc::from(ir));
+        trace!("set_glyph_ir {}", glyph_name);
     }
 }

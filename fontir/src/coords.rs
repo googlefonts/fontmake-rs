@@ -146,6 +146,10 @@ impl NormalizedCoord {
     pub fn to_design(&self, converter: &CoordConverter) -> DesignCoord {
         DesignCoord::new(converter.normalized_to_design.map(self.0))
     }
+
+    pub fn to_user(&self, converter: &CoordConverter) -> UserCoord {
+        self.to_design(converter).to_user(converter)
+    }
 }
 
 impl DesignCoord {
@@ -173,12 +177,23 @@ impl<T> FromIterator<(String, T)> for Location<T> {
 }
 
 impl<T> Location<T> {
-    pub fn on_axis(name: &str, pos: T) -> Location<T> {
-        Location(BTreeMap::from([(name.to_string(), pos)]))
+    pub fn new() -> Location<T> {
+        Location(BTreeMap::new())
+    }
+
+    pub fn set_pos(&mut self, axis: impl Into<String>, pos: T) -> &mut Location<T> {
+        self.0.insert(axis.into(), pos);
+        self
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&String, &T)> {
         self.0.iter()
+    }
+}
+
+impl<T> Default for Location<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -191,6 +206,22 @@ impl DesignLocation {
                     (
                         name.clone(),
                         dc.to_normalized(&axes.get(name).unwrap().converter),
+                    )
+                })
+                .collect(),
+        )
+    }
+}
+
+impl NormalizedLocation {
+    pub fn to_user(&self, axes: &HashMap<&String, &Axis>) -> UserLocation {
+        Location::<UserCoord>(
+            self.0
+                .iter()
+                .map(|(name, coord)| {
+                    (
+                        name.clone(),
+                        coord.to_user(&axes.get(name).unwrap().converter),
                     )
                 })
                 .collect(),

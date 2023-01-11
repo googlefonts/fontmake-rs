@@ -1,0 +1,70 @@
+{
+.appVersion = "3148";
+customParameters = (
+{
+name = Axes;
+value = (
+{
+Name = Weight;
+Tag = wght;
+}
+);
+},
+{
+name = "Variable Font Origin";
+value = "medium";
+}
+);
+date = "2022-12-01 04:52:20 +0000";
+familyName = WghtVar;
+fontMaster = (
+{
+ascender = 800;
+capHeight = 0;
+descender = -200;
+id = thin;
+weightValue = 200;
+xHeight = 0;
+},
+{
+ascender = 800;
+capHeight = 500;
+descender = -200;
+id = "medium";
+weight = Medium;
+weightValue = 500;
+xHeight = 400;
+},
+{
+ascender = 800;
+capHeight = 700;
+descender = -200;
+id = "bold";
+weight = Bold;
+weightValue = 700;
+xHeight = 500;
+}
+);
+glyphs = (
+{
+glyphname = "min-undefined";
+lastChange = "2022-12-01 05:10:49 +0000";
+layers = (
+{
+layerId = medium;
+paths = ();
+width = 600;
+},
+{
+layerId = "bold";
+paths = ();
+width = 600;
+}
+);
+unicode = 0021;
+}
+);
+unitsPerEm = 1000;
+versionMajor = 1;
+versionMinor = 0;
+}
