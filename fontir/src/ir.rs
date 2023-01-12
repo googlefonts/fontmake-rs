@@ -3,7 +3,7 @@
 use crate::{
     coords::{CoordConverter, NormalizedLocation, UserCoord},
     error::Error,
-    serde::{GlyphSerdeRepr, StaticMetadataSerdeRepr},
+    serde::StaticMetadataSerdeRepr,
 };
 use indexmap::IndexSet;
 use serde::{Deserialize, Serialize};
@@ -72,7 +72,6 @@ impl Features {
 /// many, presumed to vary continuously between positions and required
 /// to have variation compatible structure.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(from = "GlyphSerdeRepr", into = "GlyphSerdeRepr")]
 pub struct Glyph {
     pub name: String,
     pub sources: HashMap<NormalizedLocation, GlyphInstance>,
@@ -164,10 +163,9 @@ pub struct Affine2x3 {
 
 #[cfg(test)]
 mod tests {
-
     use crate::{
-        coords::{CoordConverter, UserCoord},
-        ir::Axis,
+        coords::{CoordConverter, NormalizedCoord, NormalizedLocation, UserCoord},
+        ir::{Axis, Glyph, GlyphInstance},
     };
 
     fn test_axis() -> Axis {
@@ -198,5 +196,26 @@ mod tests {
         let test_axis = test_axis();
         let bin = bincode::serialize(&test_axis).unwrap();
         assert_eq!(test_axis, bincode::deserialize(&bin).unwrap());
+    }
+
+    #[test]
+    fn glyph_yml() {
+        let mut glyph = Glyph::new(String::from("A"));
+
+        let loc1 = NormalizedLocation::on_axis("Weight", NormalizedCoord::new(0.0));
+        glyph
+            .try_add_source(&loc1, GlyphInstance::default())
+            .unwrap();
+
+        // // Uncomment lines below to see libyaml error disappear...
+        // let loc2 = NormalizedLocation::on_axis("Weight", NormalizedCoord::new(1.0));
+        // glyph.try_add_source(&loc2, GlyphInstance::default()).unwrap();
+
+        println!("{:#?}", glyph);
+
+        let yml = serde_yaml::to_string(&glyph).unwrap();
+        println!("{}", yml);
+
+        assert_eq!(yml, "TODO");
     }
 }

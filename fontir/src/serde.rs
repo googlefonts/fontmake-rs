@@ -4,8 +4,8 @@ use filetime::FileTime;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    coords::{CoordConverter, DesignCoord, NormalizedLocation, UserCoord},
-    ir::{Axis, Glyph, GlyphInstance, StaticMetadata},
+    coords::{CoordConverter, DesignCoord, UserCoord},
+    ir::{Axis, StaticMetadata},
     stateset::{FileState, MemoryState, State, StateIdentifier, StateSet},
 };
 
@@ -59,48 +59,6 @@ impl From<StaticMetadata> for StaticMetadataSerdeRepr {
         StaticMetadataSerdeRepr {
             axes: from.axes,
             glyph_order: from.glyph_order.into_iter().collect(),
-        }
-    }
-}
-
-// The HashMap<NormalizedLocation, GlyphInstance> seems to throw serde for a loop sometimes
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GlyphInstanceSerdeRepr {
-    location: NormalizedLocation,
-    instance: GlyphInstance,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GlyphSerdeRepr {
-    pub name: String,
-    pub instances: Vec<GlyphInstanceSerdeRepr>,
-}
-
-impl From<GlyphSerdeRepr> for Glyph {
-    fn from(from: GlyphSerdeRepr) -> Self {
-        Glyph {
-            name: from.name,
-            sources: from
-                .instances
-                .into_iter()
-                .map(|g| (g.location, g.instance))
-                .collect(),
-        }
-    }
-}
-
-impl From<Glyph> for GlyphSerdeRepr {
-    fn from(from: Glyph) -> Self {
-        GlyphSerdeRepr {
-            name: from.name,
-            instances: from
-                .sources
-                .into_iter()
-                .map(|(loc, inst)| GlyphInstanceSerdeRepr {
-                    location: loc,
-                    instance: inst,
-                })
-                .collect(),
         }
     }
 }
